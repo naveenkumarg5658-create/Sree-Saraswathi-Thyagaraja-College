@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Leetcode Performance Tracker — Patrician College</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Clash+Display:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f5f2eb;
+    --surface: #ffffff;
+    --surface2: #fcfaf6;
+    --border: #d8d2c4;
+    --ink: #1a1714;
+    --muted: #7a7368;
+    --easy: #3d9970;
+    --medium: #e67e22;
+    --hard: #c0392b;
+    --accent: #2c5f8a;
+    --tag-bg: #1a1714;
+    --tag-text: #f5f2eb;
+    --font-head: 'Clash Display', 'Georgia', serif;
+    --font-mono: 'DM Mono', monospace;
+    --shadow: 0 2px 12px rgba(26,23,20,0.08);
+    --shadow-lg: 0 8px 32px rgba(26,23,20,0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .topbar {
+    background: var(--ink);
+    color: #aaa;
+    padding: 0 40px;
+    height: 66px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid var(--easy);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 24px rgba(26,23,20,0.35);
+  }
+  .topbar-title {
+    font-family: var(--font-head);
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #0dc173b8;
+  }
+  .topbar-title .sep { color: #ffffff; font-weight: 300; font-family: var(--font-mono); }
+  .topbar-title .sub { color: #c9c4c4; font-family: var(--font-mono); font-size: 1.0rem; font-weight: 550; }
+  .topbar-logo {
+    height: 47px;
+    vertical-align: middle;
+    margin-right: 14px;
+    border-radius: 8px;
+    background: #fff;
+    padding: 4px 10px;
+  }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+
+  .pdf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    background: var(--easy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.12s;
+    box-shadow: 0 2px 8px rgba(61,153,112,0.35);
+  }
+  .pdf-btn:hover { background: #2d7a58; transform: translateY(-1px); }
+  .pdf-btn:active { transform: translateY(0); }
+  .pdf-btn svg { flex-shrink: 0; }
+
+  .main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 36px 40px 60px;
+  }
+
+  .class-label-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 22px;
+    padding: 10px 18px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.3s ease both;
+  }
+  .class-label-badge {
+    background: var(--easy);
+    color: #fff;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-family: var(--font-mono);
+  }
+  .class-label-name {
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .class-label-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+
+  .metrics-wrapper {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+    align-items: stretch;
+  }
+
+  .metrics-group {
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow);
+    flex: 1;
+    animation: fadeUp 0.4s ease both;
+  }
+  .metrics-group.students { animation-delay: 0.05s; border-color: #d4c8f0; }
+  .metrics-group.questions { animation-delay: 0.1s; border-color: #b8ddc8; }
+
+  .metrics-group-label {
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .metrics-group.students .metrics-group-label {
+    background: #ede8ff;
+    color: #5a3fa0;
+    border-bottom: 1px solid #d4c8f0;
+  }
+  .metrics-group.questions .metrics-group-label {
+    background: #e4f7ed;
+    color: #1e6e47;
+    border-bottom: 1px solid #b8ddc8;
+  }
+  .metrics-group-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .students .metrics-group-dot { background: #7b5fe0; }
+  .questions .metrics-group-dot { background: var(--easy); }
+
+  .metrics-group-cards {
+    display: flex;
+    flex: 1;
+    background: var(--surface);
+  }
+  .metrics-group-cards .metric-card {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    flex: 1;
+    margin: 0;
+    animation: none;
+    padding: 14px 18px;
+  }
+  .metrics-group-cards .metric-card + .metric-card {
+    border-left: 1px solid var(--border);
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.4s ease both;
+  }
+
+  .metric-label {
+    font-size: 0.68rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .metric-value {
+    font-family: var(--font-head);
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .metric-value.easy { color: var(--easy); }
+  .metric-value.medium { color: var(--medium); }
+  .metric-value.hard { color: var(--hard); }
+  .metric-value.accent { color: var(--accent); }
+  .metric-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .charts-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .chart-wide { grid-column: 1 / -1; }
+  .chart-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 26px;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.5s ease both;
+  }
+  .chart-title {
+    font-family: var(--font-head);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--ink);
+  }
+  .chart-sub {
+    font-size: 0.68rem;
+    color: var(--muted);
+    margin-bottom: 18px;
+    letter-spacing: 0.5px;
+  }
+  .chart-container { position: relative; }
+
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-right: 4px;
+  }
+  .filter-btn {
+    padding: 5px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: var(--ink);
+    transition: all 0.18s;
+    letter-spacing: 0.5px;
+  }
+  .filter-btn:hover { background: var(--surface2); }
+  .filter-btn.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  .search-box {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--ink);
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus { border-color: var(--accent); }
+
+  .table-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    animation: fadeUp 0.6s ease both;
+    animation-delay: 0.3s;
+  }
+  .table-head-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 0;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+  thead tr {
+    background: var(--surface2);
+    border-bottom: 2px solid var(--border);
+  }
+  th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  th:hover { color: var(--ink); }
+
+  tbody tr {
+    border-bottom: 1px solid var(--surface2);
+    transition: background 0.15s;
+    line-height: 1.4;
+  }
+  tbody tr:hover { background: #faf8f3; }
+  tbody tr:last-child { border-bottom: none; }
+  td {
+    padding: 11px 16px;
+    color: var(--ink);
+    vertical-align: middle;
+  }
+  .td-name { font-weight: 500; }
+  .td-sno { color: var(--muted); font-size: 0.7rem; text-align: center; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-align: center;
+    min-width: 32px;
+  }
+  .badge-easy { background: #d4f1e4; color: #1e6e47; }
+  .badge-medium { background: #fde9d3; color: #8a4300; }
+  .badge-hard { background: #fad5d5; color: #7a1a1a; }
+  .badge-zero { background: var(--surface2); color: var(--muted); }
+
+  .total-bar-wrap {
+    width: 120px;
+    background: var(--surface2);
+    border-radius: 4px;
+    height: 6px;
+    overflow: hidden;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 8px;
+  }
+  .total-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--easy), var(--accent));
+    transition: width 0.4s ease;
+  }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--muted);
+  }
+  .page-btns { display: flex; gap: 6px; }
+  .page-btn {
+    width: 30px; height: 30px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink);
+    transition: all 0.15s;
+  }
+  .page-btn:hover, .page-btn.active {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+
+  .legend {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-right: 5px;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 18px;
+    margin-top: 8px;
+  }
+  .section-title {
+    font-family: var(--font-head);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+  .section-line {
+    flex: 1;
+    height: 1.5px;
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .topper-tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 0.6rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  .no-attempt td { opacity: 0.5; }
+
+  .sort-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 22px;
+    padding: 3px 5px;
+  }
+  .sort-col-btn {
+    padding: 4px 12px;
+    border-radius: 16px;
+    border: none;
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.16s;
+    letter-spacing: 0.4px;
+  }
+  .sort-col-btn:hover { color: var(--ink); background: var(--surface); }
+  .sort-col-btn.active {
+    background: var(--ink);
+    color: var(--bg);
+  }
+  .sort-dir-btn {
+    padding: 4px 10px;
+    border-radius: 16px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: var(--accent);
+    font-weight: 600;
+    margin-left: 4px;
+    transition: all 0.16s;
+    white-space: nowrap;
+  }
+  .sort-dir-btn:hover { background: var(--surface2); }
+
+  @media (max-width: 900px) {
+    .metrics-wrapper { flex-direction: column; }
+    .charts-row { grid-template-columns: 1fr; }
+    .main { padding: 24px 16px 40px; }
+    .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 12px; height: auto; }
+  }
+
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    @page { size: auto; margin: auto; }
+    body { background: var(--bg) !important; }
+    .pdf-btn { display: none !important; }
+    .topbar {
+      background: var(--ink) !important;
+      border-bottom: 2px solid var(--easy) !important;
+      padding: 12px 24px !important;
+    }
+    .topbar-title { font-size: 1rem !important; color: #0dc173b8 !important; }
+    .topbar-logo { height: 40px !important; }
+    .main { padding: 50px 50px 50px !important; max-width: 100% !important; }
+    .class-label-bar { animation: none !important; box-shadow: none !important; }
+    .metrics-wrapper { display: flex !important; flex-direction: row !important; gap: 12px !important; margin-bottom: 20px !important; }
+    .metrics-group { flex: 1 !important; display: flex !important; flex-direction: column !important; border-radius: 8px !important; overflow: hidden !important; border: 1.5px solid var(--border) !important; box-shadow: none !important; }
+    .metrics-group.students { border-color: #d4c8f0 !important; }
+    .metrics-group.questions { border-color: #b8ddc8 !important; }
+    .metrics-group-label { padding: 7px 14px !important; font-size: 0.6rem !important; }
+    .metrics-group.students .metrics-group-label { background: #ede8ff !important; color: #5a3fa0 !important; border-bottom: 1px solid #d4c8f0 !important; }
+    .metrics-group.questions .metrics-group-label { background: #e4f7ed !important; color: #1e6e47 !important; border-bottom: 1px solid #b8ddc8 !important; }
+    .metrics-group-cards { display: flex !important; flex-direction: row !important; flex: 1 !important; background: var(--surface) !important; }
+    .metrics-group-cards .metric-card { flex: 1 !important; padding: 12px 16px !important; border: none !important; border-radius: 0 !important; box-shadow: none !important; margin: 0 !important; }
+    .metrics-group-cards .metric-card + .metric-card { border-left: 1px solid var(--border) !important; }
+    .metric-value { font-size: 1.8rem !important; }
+    .charts-row { grid-template-columns: 1fr 1fr !important; gap: 14px !important; margin-bottom: 16px !important; }
+    .chart-wide { grid-column: 1 / -1 !important; }
+    .chart-card { padding: 16px 18px !important; border-radius: 8px !important; break-inside: avoid !important; box-shadow: none !important; }
+    .table-card { box-shadow: none !important; border: 1.5px solid var(--border) !important; border-radius: 8px !important; overflow: visible !important; }
+    .table-head-bar { display: none !important; }
+    .filter-bar, .search-box, .pagination { display: none !important; }
+    table { font-size: 0.78rem !important; }
+    th { padding: 9px 14px !important; font-size: 0.62rem !important; }
+    td { padding: 8px 14px !important; }
+    .no-attempt td { opacity: 0.4 !important; }
+    #tableBody tr { display: table-row !important; }
+    .no-print { display: none !important; }
+    .print-only-header { display: block !important; font-family: var(--font-head) !important; font-size: 0.9rem !important; font-weight: 700 !important; padding: 10px 16px 8px !important; border-bottom: 1px solid var(--border) !important; color: var(--ink) !important; background: var(--surface2) !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-title">
+    Sree Saraswathi Thyagaraja College
+    <span class="sep">—</span>
+    <span class="sub">Leetcode Performance Tracker</span>
+  </div>
+  <div class="topbar-right">
+    <img src="face prep campus.webp" alt="Logo" class="topbar-logo"/>
+    <button class="pdf-btn" onclick="downloadPDF()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/>
+        <line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Download PDF
+    </button>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="class-label-bar">
+    <span class="class-label-badge">I MCA</span>
+    <span class="class-label-name">I MCA (2025 – 2028)</span>
+    <span class="class-label-sub" id="classLabelSub"></span>
+  </div>
+
+  <div class="metrics-wrapper">
+    <div class="metrics-group students">
+      <div class="metrics-group-label"><span class="metrics-group-dot"></span>Students</div>
+      <div class="metrics-group-cards" id="metricsStudents"></div>
+    </div>
+    <div class="metrics-group questions">
+      <div class="metrics-group-label"><span class="metrics-group-dot"></span>Questions Solved</div>
+      <div class="metrics-group-cards" id="metricsQuestions"></div>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <span class="section-title">Analytics</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Problems Solved by Difficulty</div>
+      <div class="chart-sub">Total count across all students</div>
+      <div class="chart-container" style="height:240px">
+        <canvas id="difficultyChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Engagement Distribution</div>
+      <div class="chart-sub">Students by activity level</div>
+      <div class="chart-container" style="height:240px">
+        <canvas id="engagementChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card chart-wide">
+      <div class="chart-title">Top 15 Students — Total Problems Solved</div>
+      <div class="legend">
+        <span><span class="legend-dot" style="background:var(--easy)"></span>Easy</span>
+        <span><span class="legend-dot" style="background:var(--medium)"></span>Medium</span>
+        <span><span class="legend-dot" style="background:var(--hard)"></span>Hard</span>
+      </div>
+      <div class="chart-container" style="height:300px">
+        <canvas id="topStudentsChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-header no-print">
+    <span class="section-title">All Students</span>
+    <div class="section-line"></div>
+  </div>
+
+  <div class="table-card">
+    <div class="print-only-header" style="display:none">All Students — I MCA (2025–2028)</div>
+    <div class="table-head-bar">
+      <div class="filter-bar">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+        <button class="filter-btn" onclick="setFilter('active', this)">Active</button>
+        <button class="filter-btn" onclick="setFilter('inactive', this)">No Attempts</button>
+        <span class="filter-label" style="margin-left:10px">Sort:</span>
+        <div class="sort-group">
+          <button class="sort-col-btn active" onclick="setSortCol('total', this)">Total</button>
+          <button class="sort-col-btn" onclick="setSortCol('easy', this)">Easy</button>
+          <button class="sort-col-btn" onclick="setSortCol('medium', this)">Medium</button>
+          <button class="sort-col-btn" onclick="setSortCol('hard', this)">Hard</button>
+          <button class="sort-dir-btn" id="sortDirBtn" onclick="toggleSortDir()">&#8595; Desc</button>
+        </div>
+      </div>
+      <input class="search-box" type="text" id="searchInput" placeholder="🔍  Search student..." oninput="searchStudents(this.value)" />
+    </div>
+    <div style="overflow-x:auto; padding: 12px 0 0;">
+      <table>
+        <thead>
+          <tr>
+            <th onclick="sortTable('sno')">S.No</th>
+            <th onclick="sortTable('name')">Student Name</th>
+            <th onclick="sortTable('easy')">Easy</th>
+            <th onclick="sortTable('medium')">Medium</th>
+            <th onclick="sortTable('hard')">Hard</th>
+            <th onclick="sortTable('total')">Total</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <div class="pagination">
+      <span id="paginationInfo"></span>
+      <div class="page-btns" id="pageBtns"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const RAW_DATA = [
+  {sno:1,  name:"ABARNA S",          easy:2, medium:1, hard:0},
+  {sno:2,  name:"ABHIJITH A",        easy:1, medium:0, hard:0},
+  {sno:3,  name:"ARAVINDAN RH",      easy:0, medium:0, hard:0},
+  {sno:4,  name:"ASHWIN S",          easy:1, medium:0, hard:0},
+  {sno:5,  name:"CHINRAJ M",         easy:2, medium:0, hard:0},
+  {sno:6,  name:"DEVARAJ M",         easy:0, medium:4, hard:0},
+  {sno:7,  name:"DHANAPRASATH R",    easy:0, medium:0, hard:0},
+  {sno:8,  name:"DHARANI PRABHA S",  easy:0, medium:4, hard:0},
+  {sno:9,  name:"DHAVANITHI S",      easy:4, medium:0, hard:0},
+  {sno:10, name:"GOKILA LAKSHMI K",  easy:1, medium:0, hard:0},
+  {sno:11, name:"GOKUL SANKAR P",    easy:0, medium:0, hard:0},
+  {sno:12, name:"GOWTHAM KARTHIK N", easy:3, medium:0, hard:0},
+  {sno:13, name:"GRACY SUBIKSHA R",  easy:2, medium:1, hard:0},
+  {sno:14, name:"ISWARAYA K",        easy:2, medium:1, hard:0},
+  {sno:15, name:"KAVIYA S",          easy:1, medium:0, hard:0},
+  {sno:16, name:"LATHIKA",           easy:0, medium:4, hard:0},
+  {sno:17, name:"LAVANYA S",         easy:1, medium:3, hard:0},
+  {sno:18, name:"MANIKANDAN S",      easy:1, medium:1, hard:0},
+  {sno:19, name:"MANO DANIEL",       easy:1, medium:0, hard:0},
+  {sno:20, name:"MEENAKSHI V",       easy:0, medium:2, hard:0},
+  {sno:21, name:"MEGAVARDHINI S",    easy:1, medium:0, hard:0},
+  {sno:22, name:"MISBA T",           easy:3, medium:3, hard:0},
+  {sno:23, name:"NANDHINI N",        easy:2, medium:2, hard:0},
+  {sno:24, name:"NARMATHA DEVI M",   easy:2, medium:4, hard:0},
+  {sno:25, name:"NAVEEN KUMAR G",    easy:3, medium:2, hard:0},
+  {sno:26, name:"NAVEEN KUMAR S",    easy:2, medium:6, hard:2},
+  {sno:27, name:"NIVEDHYA S",        easy:0, medium:2, hard:0},
+  {sno:28, name:"PREM KUMAR R",      easy:1, medium:0, hard:0},
+  {sno:29, name:"RAGUL K",           easy:0, medium:0, hard:0},
+  {sno:30, name:"RAGUL S",           easy:0, medium:0, hard:0},
+  {sno:31, name:"RAKESHWARAN C",     easy:1, medium:0, hard:0},
+  {sno:32, name:"SANTHOSH N",        easy:1, medium:0, hard:0},
+  {sno:33, name:"SARAVANAN G",       easy:3, medium:0, hard:0},
+  {sno:34, name:"SELVA GANESH",      easy:0, medium:0, hard:0},
+  {sno:35, name:"SENTHILNATHAN S",   easy:0, medium:2, hard:0},
+  {sno:36, name:"SHRI VIJAY S",      easy:0, medium:0, hard:0},
+  {sno:37, name:"SOWMIYA K",         easy:0, medium:4, hard:0},
+  {sno:38, name:"SRINANDHIKA K",     easy:1, medium:1, hard:0},
+  {sno:39, name:"UDHAYA KUMAR V",    easy:2, medium:0, hard:0},
+  {sno:40, name:"VAANISHRI",         easy:2, medium:2, hard:0},
+  {sno:41, name:"VIGNESH A",         easy:0, medium:0, hard:0},
+  {sno:42, name:"VIGNESH D",         easy:0, medium:0, hard:0},
+];
+
+let data=[],maxTotal=0,chartInstances={};
+let currentFilter='all',currentSearch='',currentSort={key:'total',dir:'desc'},currentPage=1;
+const PAGE_SIZE=15;
+
+function init(){
+  data=RAW_DATA.map(s=>({...s,total:s.easy+s.medium+s.hard}));
+  const sorted=[...data].sort((a,b)=>b.total-a.total);
+  sorted.forEach((s,i)=>{data.find(d=>d.sno===s.sno).rank=i+1;});
+  maxTotal=Math.max(...data.map(d=>d.total),1);
+  const active=data.filter(d=>d.total>0).length;
+  document.getElementById('classLabelSub').textContent=`${data.length} students · ${active} active`;
+  renderMetrics();renderCharts();renderTable();
+}
+
+function renderMetrics(){
+  const totalEasy=data.reduce((a,b)=>a+b.easy,0);
+  const totalMedium=data.reduce((a,b)=>a+b.medium,0);
+  const totalHard=data.reduce((a,b)=>a+b.hard,0);
+  const totalProblems=totalEasy+totalMedium+totalHard;
+  const activeStudents=data.filter(d=>d.total>0).length;
+  const safePct=(n,d)=>d===0?'0':((n/d)*100).toFixed(0);
+  const card=m=>`<div class="metric-card"><div class="metric-label">${m.label}</div><div class="metric-value ${m.cls||''}">${m.value}</div><div class="metric-sub">${m.sub}</div></div>`;
+  document.getElementById('metricsStudents').innerHTML=[
+    {label:"Total Students",value:data.length,sub:"enrolled",cls:""},
+    {label:"Active Students",value:activeStudents,sub:`${safePct(activeStudents,data.length)}% participation`,cls:""}
+  ].map(card).join('');
+  document.getElementById('metricsQuestions').innerHTML=[
+    {label:"Total Solved",value:totalProblems,sub:"Questions",cls:"accent"},
+    {label:"Easy",value:totalEasy,sub:`${safePct(totalEasy,totalProblems||1)}% of total`,cls:"easy"},
+    {label:"Medium",value:totalMedium,sub:`${safePct(totalMedium,totalProblems||1)}% of total`,cls:"medium"},
+    {label:"Hard",value:totalHard,sub:`${safePct(totalHard,totalProblems||1)}% of total`,cls:"hard"}
+  ].map(card).join('');
+}
+
+function destroyCharts(){
+  ['difficultyChart','engagementChart','topStudentsChart'].forEach(id=>{
+    if(chartInstances[id]){chartInstances[id].destroy();delete chartInstances[id];}
+  });
+}
+
+function renderCharts(){
+  destroyCharts();
+  const totalEasy=data.reduce((a,b)=>a+b.easy,0);
+  const totalMedium=data.reduce((a,b)=>a+b.medium,0);
+  const totalHard=data.reduce((a,b)=>a+b.hard,0);
+  const totalProblems=totalEasy+totalMedium+totalHard;
+
+  const doughnutLabelPlugin={id:'doughnutLabels',afterDatasetDraw(chart){
+    const{ctx,data:cdata}=chart,meta=chart.getDatasetMeta(0);
+    const total=cdata.datasets[0].data.reduce((a,b)=>a+b,0);if(total===0)return;
+    meta.data.forEach((arc,i)=>{
+      const val=cdata.datasets[0].data[i];if(val===0)return;
+      const pct=((val/total)*100).toFixed(1),{x,y}=arc.tooltipPosition();
+      ctx.save();ctx.font='bold 12px DM Mono, monospace';ctx.fillStyle='#fff';
+      ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(`${val}`,x,y-7);ctx.font='10px DM Mono, monospace';
+      ctx.fillText(`${pct}%`,x,y+7);ctx.restore();
+    });
+  }};
+
+  chartInstances['difficultyChart']=new Chart(document.getElementById('difficultyChart'),{
+    type:'doughnut',plugins:[doughnutLabelPlugin],
+    data:{labels:['Easy','Medium','Hard'],datasets:[{data:[totalEasy,totalMedium,totalHard],backgroundColor:['#3d9970','#e67e22','#c0392b'],borderWidth:2,borderColor:'#fff',hoverOffset:10}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'58%',
+      plugins:{legend:{position:'right',labels:{font:{family:'DM Mono',size:11},color:'#1a1714',padding:14,boxWidth:12}},
+        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} problems (${((ctx.raw/(totalProblems||1))*100).toFixed(1)}%)`}}}}
+  });
+
+  const zero=data.filter(d=>d.total===0).length;
+  const low=data.filter(d=>d.total>=1&&d.total<=2).length;
+  const mid=data.filter(d=>d.total>=3&&d.total<=5).length;
+  const high=data.filter(d=>d.total>5).length;
+
+  const barLabelPlugin={id:'barLabels',afterDatasetDraw(chart){
+    const{ctx}=chart;
+    chart.getDatasetMeta(0).data.forEach((bar,i)=>{
+      const val=chart.data.datasets[0].data[i];if(val===0)return;
+      ctx.save();ctx.font='bold 13px DM Mono, monospace';ctx.fillStyle='#1a1714';
+      ctx.textAlign='center';ctx.textBaseline='bottom';
+      ctx.fillText(val,bar.x,bar.y-4);ctx.restore();
+    });
+  }};
+
+  chartInstances['engagementChart']=new Chart(document.getElementById('engagementChart'),{
+    type:'bar',plugins:[barLabelPlugin],
+    data:{labels:['No attempts','1–2 solved','3–5 solved','6+ solved'],datasets:[{data:[zero,low,mid,high],backgroundColor:['#ddd','#a8d5c2','#3d9970','#1e6e47'],borderRadius:6,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:24}},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` ${ctx.raw} students`}}},
+      scales:{x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#7a7368'}},
+        y:{grid:{color:'#eeeae0'},ticks:{font:{family:'DM Mono',size:10},color:'#7a7368',stepSize:5}}}}
+  });
+
+  const top15=[...data].sort((a,b)=>b.total-a.total).slice(0,15);
+  const totalLabelPlugin={id:'totalLabels',afterDatasetsDraw(chart){
+    const{ctx,scales:{x,y}}=chart;
+    top15.forEach((s,i)=>{
+      if(s.total===0)return;
+      const xPos=x.getPixelForValue(i),yPos=y.getPixelForValue(s.total),label=String(s.total);
+      ctx.save();ctx.font='bold 11px DM Mono, monospace';
+      const tw=ctx.measureText(label).width,pw=tw+14,ph=19,rx=5,bx=xPos-pw/2,by=yPos-ph-8;
+      ctx.shadowColor='rgba(44,95,138,0.22)';ctx.shadowBlur=8;ctx.shadowOffsetY=2;
+      ctx.beginPath();ctx.moveTo(bx+rx,by);ctx.lineTo(bx+pw-rx,by);ctx.quadraticCurveTo(bx+pw,by,bx+pw,by+rx);
+      ctx.lineTo(bx+pw,by+ph-rx);ctx.quadraticCurveTo(bx+pw,by+ph,bx+pw-rx,by+ph);ctx.lineTo(bx+rx,by+ph);
+      ctx.quadraticCurveTo(bx,by+ph,bx,by+ph-rx);ctx.lineTo(bx,by+rx);ctx.quadraticCurveTo(bx,by,bx+rx,by);
+      ctx.closePath();ctx.fillStyle='#2c5f8a';ctx.fill();
+      ctx.shadowBlur=0;ctx.shadowOffsetY=0;ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(label,xPos,by+ph/2);ctx.restore();
+    });
+  }};
+
+  chartInstances['topStudentsChart']=new Chart(document.getElementById('topStudentsChart'),{
+    type:'bar',plugins:[totalLabelPlugin],
+    data:{labels:top15.map(s=>s.name.split(' ')[0]),datasets:[
+      {label:'Easy',data:top15.map(s=>s.easy),backgroundColor:'#3d9970',borderRadius:0,stack:'stack0'},
+      {label:'Medium',data:top15.map(s=>s.medium),backgroundColor:'#e67e22',borderRadius:0,stack:'stack0'},
+      {label:'Hard',data:top15.map(s=>s.hard),backgroundColor:'#c0392b',borderRadius:4,stack:'stack0'},
+      {label:'Total',data:top15.map(s=>s.total),type:'line',borderColor:'#2c5f8a',backgroundColor:'rgba(44,95,138,0.12)',borderWidth:2.5,pointBackgroundColor:'#2c5f8a',pointRadius:5,pointHoverRadius:7,fill:false,tension:.35,yAxisID:'y',stack:undefined,order:0}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:36}},interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:true,labels:{font:{family:'DM Mono',size:10},color:'#7a7368',boxWidth:12,padding:16}},
+        tooltip:{callbacks:{title:items=>top15[items[0].dataIndex].name,label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},
+      scales:{x:{stacked:true,grid:{display:false},ticks:{font:{family:'DM Mono',size:10},color:'#7a7368'}},
+        y:{stacked:true,grid:{color:'#eeeae0'},ticks:{font:{family:'DM Mono',size:10},color:'#7a7368',stepSize:2}}}}
+  });
+}
+
+function getFiltered(){
+  let d=[...data];
+  if(currentFilter==='active')d=d.filter(s=>s.total>0);
+  if(currentFilter==='inactive')d=d.filter(s=>s.total===0);
+  if(currentSort.key==='easy')d=d.filter(s=>s.easy>0);
+  if(currentSort.key==='medium')d=d.filter(s=>s.medium>0);
+  if(currentSort.key==='hard')d=d.filter(s=>s.hard>0);
+  if(currentSearch){const q=currentSearch.toLowerCase();d=d.filter(s=>s.name.toLowerCase().includes(q));}
+  d.sort((a,b)=>{let va=a[currentSort.key],vb=b[currentSort.key];if(typeof va==='string'){va=va.toLowerCase();vb=vb.toLowerCase();}if(va<vb)return currentSort.dir==='asc'?-1:1;if(va>vb)return currentSort.dir==='asc'?1:-1;return 0;});
+  return d;
+}
+
+function renderTable(){
+  const filtered=getFiltered();
+  const totalPages=Math.max(1,Math.ceil(filtered.length/PAGE_SIZE));
+  if(currentPage>totalPages)currentPage=1;
+  const start=(currentPage-1)*PAGE_SIZE,page=filtered.slice(start,start+PAGE_SIZE);
+  document.getElementById('tableBody').innerHTML=page.map((s,i)=>{
+    const pct=maxTotal>0?(s.total/maxTotal)*100:0,isTop=s.rank<=3&&s.total>0;
+    return `<tr class="${s.total===0?'no-attempt':''}">
+      <td class="td-sno">${start+i+1}</td>
+      <td class="td-name">${s.name}${isTop?`<span class="topper-tag">#${s.rank}</span>`:''}</td>
+      <td><span class="badge ${s.easy>0?'badge-easy':'badge-zero'}">${s.easy}</span></td>
+      <td><span class="badge ${s.medium>0?'badge-medium':'badge-zero'}">${s.medium}</span></td>
+      <td><span class="badge ${s.hard>0?'badge-hard':'badge-zero'}">${s.hard}</span></td>
+      <td><strong>${s.total}</strong></td>
+      <td><div class="total-bar-wrap"><div class="total-bar-fill" style="width:${pct}%"></div></div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('paginationInfo').textContent=`Showing ${start+1}–${Math.min(start+PAGE_SIZE,filtered.length)} of ${filtered.length} students`;
+  const pageBtns=document.getElementById('pageBtns');pageBtns.innerHTML='';
+  for(let i=1;i<=totalPages;i++){const btn=document.createElement('button');btn.className='page-btn'+(i===currentPage?' active':'');btn.textContent=i;btn.onclick=()=>{currentPage=i;renderTable();};pageBtns.appendChild(btn);}
+}
+
+function setSortCol(key,btn){currentSort.key=key;currentSort.dir='desc';document.querySelectorAll('.sort-col-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('sortDirBtn').textContent='↓ Desc';currentPage=1;renderTable();}
+function toggleSortDir(){currentSort.dir=currentSort.dir==='desc'?'asc':'desc';document.getElementById('sortDirBtn').textContent=currentSort.dir==='desc'?'↓ Desc':'↑ Asc';currentPage=1;renderTable();}
+function setFilter(f,btn){currentFilter=f;currentPage=1;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderTable();}
+function searchStudents(q){currentSearch=q;currentPage=1;renderTable();}
+function sortTable(key){if(currentSort.key===key)currentSort.dir=currentSort.dir==='asc'?'desc':'asc';else currentSort={key,dir:'desc'};renderTable();}
+function downloadPDF(){
+  const tbody=document.getElementById('tableBody'),savedHTML=tbody.innerHTML;
+  const allRows=[...data].sort((a,b)=>a.rank-b.rank);
+  tbody.innerHTML=allRows.map((s,i)=>{
+    const pct=maxTotal>0?(s.total/maxTotal)*100:0,isTop=s.rank<=3&&s.total>0;
+    return `<tr class="${s.total===0?'no-attempt':''}"><td class="td-sno">${i+1}</td><td class="td-name">${s.name}${isTop?`<span class="topper-tag">#${s.rank}</span>`:''}</td><td><span class="badge ${s.easy>0?'badge-easy':'badge-zero'}">${s.easy}</span></td><td><span class="badge ${s.medium>0?'badge-medium':'badge-zero'}">${s.medium}</span></td><td><span class="badge ${s.hard>0?'badge-hard':'badge-zero'}">${s.hard}</span></td><td><strong>${s.total}</strong></td><td><div class="total-bar-wrap"><div class="total-bar-fill" style="width:${pct}%"></div></div></td></tr>`;
+  }).join('');
+  window.print();setTimeout(()=>{tbody.innerHTML=savedHTML;},600);
+}
+
+init();
+</script>
+</body>
+</html>
